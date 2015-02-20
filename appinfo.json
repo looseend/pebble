@@ -1,0 +1,17 @@
+{
+  "uuid": "7b99db93-2503-4d6e-a503-67353132a90c",
+  "shortName": "cyclestreets",
+  "longName": "cyclestreets",
+  "companyName": "MakeAwesomeHappen",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
