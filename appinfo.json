@@ -2,16 +2,81 @@
   "uuid": "7b99db93-2503-4d6e-a503-67353132a90c",
   "shortName": "cyclestreets",
   "longName": "cyclestreets",
-  "companyName": "MakeAwesomeHappen",
+  "companyName": "CycleStreets",
   "versionCode": 1,
   "versionLabel": "1.0",
   "watchapp": {
     "watchface": false
   },
   "appKeys": {
-    "dummy": 0
+    "turn": 0,
+    "street": 1,
+    "distance": 2,
+    "running": 3,
+    "instruction": 4
   },
   "resources": {
-    "media": []
+    "media": [
+      {
+        "type": "png",
+        "name": "BEAR_LEFT",
+        "file": "img/bear_left.png"
+      },
+      {
+        "type": "png",
+        "name": "BEAR_RIGHT",
+        "file": "img/bear_right.png"
+      },
+      {
+        "type": "png",
+        "name": "DOUBLE_BACK",
+        "file": "img/double_back.png"
+      },
+      {
+        "type": "png",
+        "name": "FIRST_EXIT",
+        "file": "img/first_exit.png"
+      },
+      {
+        "type": "png",
+        "name": "ROUNDABOUT",
+        "file": "img/roundabout.png"
+      },
+      {
+        "type": "png",
+        "name": "SECOND_EXIT",
+        "file": "img/second_exit.png"
+      },
+      {
+        "type": "png",
+        "name": "SHARP_LEFT",
+        "file": "img/sharp_left.png"
+      },
+      {
+        "type": "png",
+        "name": "SHARP_RIGHT",
+        "file": "img/sharp_right.png"
+      },
+      {
+        "type": "png",
+        "name": "STRAIGHT_ON",
+        "file": "img/straight_on.png"
+      },
+      {
+        "type": "png",
+        "name": "THIRD_EXIT",
+        "file": "img/third_exit.png"
+      },
+      {
+        "type": "png",
+        "name": "TURN_LEFT",
+        "file": "img/turn_left.png"
+      },
+      {
+        "type": "png",
+        "name": "TURN_RIGHT",
+        "file": "img/turn_right.png"
+      }
+    ]
   }
 }
