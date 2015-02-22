@@ -1,16 +1,21 @@
 #include <pebble.h>
 
 static Window *window;
-static TextLayer *text_layer;
+static TextLayer *instruction_layer;
+static TextLayer *turn_text_layer;
 static BitmapLayer *turn_layer;
 static bool messageProcessing;
 
-static GBitmap* current_turn;
+static GBitmap* current_turn = NULL;
+
+static char instruction_text[128];
+static char turn_text[32];
 
 #define TURN 0
 #define STREET 1
 #define DISTANCE 2
 #define RUNNING 3
+#define INSTRUCTION 4
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
@@ -37,16 +42,28 @@ static void window_load(Window *window) {
   bitmap_layer_set_bitmap(turn_layer, current_turn);
   layer_add_child(window_layer, bitmap_layer_get_layer(turn_layer));
 
+  turn_text_layer = text_layer_create((GRect) { .origin = {74, 0 }, .size = {70, 72}});
+  text_layer_set_font(turn_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_text_alignment(turn_text_layer, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(turn_text_layer));
+  strncpy(turn_text, "", 1);
+  text_layer_set_text(turn_text_layer, turn_text);
   
-  
-  text_layer = text_layer_create((GRect) { .origin = { 0, bounds.size.h - 20 }, .size = { bounds.size.w, 20 } });
-  text_layer_set_text(text_layer, "Press a button");
-  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(text_layer));
+  instruction_layer = text_layer_create((GRect) { .origin = {0, 74}, .size = {bounds.size.w,86}});
+  text_layer_set_font(instruction_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_text_alignment(instruction_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(instruction_layer));
+  strncpy(instruction_text, "Welcome to Cyclestreets", 23);
+  text_layer_set_text(instruction_layer, instruction_text);
 }
 
 static void window_unload(Window *window) {
-  text_layer_destroy(text_layer);
+  text_layer_destroy(instruction_layer);
+  text_layer_destroy(turn_text_layer);
+  bitmap_layer_destroy(turn_layer);
+  if (current_turn != NULL) {
+      gbitmap_destroy(current_turn);
+  }
 }
 
 
@@ -92,15 +109,32 @@ static void set_turn_bitmap(Tuple *t) {
     }
 }
 
+static void set_turn_instruction(DictionaryIterator *iter) {
+    Tuple *turn = dict_find(iter, TURN);
+    Tuple *street = dict_find(iter, STREET);
+    Tuple *distance = dict_find(iter, DISTANCE);
+    snprintf(instruction_text, 128, "%s\n%s",
+             (street == NULL) ? "" : street->value->cstring,
+             (distance == NULL) ? "" : distance->value->cstring);
+    text_layer_set_text(instruction_layer, instruction_text);
+
+    snprintf(turn_text, 32, "%s", 
+             (turn == NULL) ? "" : turn->value->cstring);
+    text_layer_set_text(turn_text_layer, turn_text);
+}
+
 static void inbox_handler(DictionaryIterator *iter, void *context) {
     set_turn_bitmap(dict_find(iter, TURN));
+    set_turn_instruction(iter);
+    
+    vibes_long_pulse();
+    light_enable_interaction();
 
     Tuple *t = dict_read_first(iter);
     while (t != NULL) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Got %u message", (unsigned int)t->key);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Got %u message, %s", (unsigned int)t->key, t->value->cstring);
         t = dict_read_next(iter);
     }
-    
 }
 
 static void inbox_dropped_handler(AppMessageResult reason, void *context) {
