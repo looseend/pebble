@@ -13,7 +13,8 @@
     "street": 1,
     "distance": 2,
     "running": 3,
-    "instruction": 4
+    "instruction": 4,
+    "stateType": 5
   },
   "resources": {
     "media": [
@@ -76,7 +77,12 @@
         "type": "png",
         "name": "TURN_RIGHT",
         "file": "img/turn_right.png"
-      }
+      },
+      {
+        "type": "png",
+        "name": "START",
+        "file": "img/start.png"
+      }      
     ]
   }
 }

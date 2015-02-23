@@ -16,6 +16,7 @@ static char turn_text[32];
 #define DISTANCE 2
 #define RUNNING 3
 #define INSTRUCTION 4
+#define STATE 5
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
@@ -36,13 +37,13 @@ static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  current_turn = gbitmap_create_with_resource(RESOURCE_ID_STRAIGHT_ON);
+  current_turn = gbitmap_create_with_resource(RESOURCE_ID_START);
   turn_layer = bitmap_layer_create((GRect) { .origin = {0, 0}, .size = {72,72}});
   APP_LOG(APP_LOG_LEVEL_DEBUG, "%ix%i", current_turn->bounds.size.w, current_turn->bounds.size.h);
   bitmap_layer_set_bitmap(turn_layer, current_turn);
   layer_add_child(window_layer, bitmap_layer_get_layer(turn_layer));
 
-  turn_text_layer = text_layer_create((GRect) { .origin = {74, 0 }, .size = {70, 72}});
+  turn_text_layer = text_layer_create((GRect) { .origin = {74, 0 }, .size = {68, 72}});
   text_layer_set_font(turn_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(turn_text_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(turn_text_layer));
@@ -103,21 +104,13 @@ static void set_turn_bitmap(Tuple *t) {
             current_turn = gbitmap_create_with_resource(instruction);
             bitmap_layer_set_bitmap(turn_layer, current_turn);
             gbitmap_destroy(old);
-            vibes_long_pulse();
-            light_enable_interaction();
         }
     }
 }
 
 static void set_turn_instruction(DictionaryIterator *iter) {
     Tuple *turn = dict_find(iter, TURN);
-    Tuple *street = dict_find(iter, STREET);
-    Tuple *distance = dict_find(iter, DISTANCE);
-    snprintf(instruction_text, 128, "%s\n%s",
-             (street == NULL) ? "" : street->value->cstring,
-             (distance == NULL) ? "" : distance->value->cstring);
-    text_layer_set_text(instruction_layer, instruction_text);
-
+    
     snprintf(turn_text, 32, "%s", 
              (turn == NULL) ? "" : turn->value->cstring);
     text_layer_set_text(turn_text_layer, turn_text);
@@ -127,9 +120,41 @@ static void inbox_handler(DictionaryIterator *iter, void *context) {
     set_turn_bitmap(dict_find(iter, TURN));
     set_turn_instruction(iter);
     
-    vibes_long_pulse();
-    light_enable_interaction();
+    Tuple *state = dict_find(iter, STATE);
+    Tuple *street = dict_find(iter, STREET);
+    Tuple *distance = dict_find(iter, DISTANCE);
 
+    if (strcmp("NearingTurn", state->value->cstring) == 0) {
+        snprintf(instruction_text, 128, "%s\n%s",
+                 (street == NULL) ? "" : street->value->cstring,
+                 (distance == NULL) ? "" : distance->value->cstring);
+        vibes_long_pulse();
+        light_enable_interaction();
+    } else if (strcmp("AdvanceToSegment", state->value->cstring) == 0) {
+        snprintf(instruction_text, 128, "%s\nNow",
+                 (street == NULL) ? "" : street->value->cstring);
+        vibes_double_pulse();
+        light_enable_interaction();
+    } else if (strcmp("ReplanFromHere", state->value->cstring) == 0) {
+        snprintf(instruction_text, 128, "Replanning");
+        vibes_double_pulse();
+        vibes_double_pulse();
+    } else if (strcmp("OnTheMove", state->value->cstring) == 0) {
+        snprintf(instruction_text, 128, "%s",
+                 (street == NULL) ? "" : street->value->cstring);
+    } else if (strcmp("LiveRideStart", state->value->cstring) == 0) {
+        snprintf(instruction_text, 128, "Starting\nRide");        
+    } else if (strcmp("NearingTurn", state->value->cstring) == 0){
+        snprintf(instruction_text, 128, "%s\n%s",
+                 (street == NULL) ? "" : street->value->cstring,
+                 (distance == NULL) ? "" : distance->value->cstring);
+    } else {
+        snprintf(instruction_text, 128, "%s", state->value->cstring);
+    }
+     
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Instructing: %s", instruction_text);
+    text_layer_set_text(instruction_layer, instruction_text);
+    
     Tuple *t = dict_read_first(iter);
     while (t != NULL) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Got %u message, %s", (unsigned int)t->key, t->value->cstring);
@@ -165,7 +190,7 @@ static void register_handlers() {
     app_message_register_inbox_received(inbox_handler);
     app_message_register_inbox_dropped(inbox_dropped_handler);
     app_message_register_outbox_failed(outbox_failed_handler);
-    app_message_open(128, 64);
+    app_message_open(2048, 512);
 }
 
 static void init(void) {
