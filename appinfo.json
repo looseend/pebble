@@ -82,6 +82,11 @@
         "type": "png",
         "name": "START",
         "file": "img/start.png"
+      },
+      {
+        "type": "png",
+        "name": "OFF_COURSE",
+        "file": "img/off_course.png"
       }      
     ]
   }

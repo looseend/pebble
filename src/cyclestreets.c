@@ -68,10 +68,9 @@ static void window_unload(Window *window) {
 }
 
 
-static void set_turn_bitmap(Tuple *t) {
-    if (t != NULL) {
+static void set_turn_bitmap(char *instr) {
+    if (instr != NULL) {
         int instruction = -1;
-        char* instr = t->value->cstring;
         if (0 == strcmp("Bear left", instr)) {
             instruction = RESOURCE_ID_BEAR_LEFT;
         } else if (0 == strcmp("Bear right", instr)) {
@@ -96,6 +95,8 @@ static void set_turn_bitmap(Tuple *t) {
             instruction = RESOURCE_ID_TURN_LEFT;
         } else if (0 == strcmp("Turn right", instr)) {
             instruction = RESOURCE_ID_TURN_RIGHT;
+        } else if (0 == strcmp("OFF_COURSE", instr)) {
+            instruction = RESOURCE_ID_OFF_COURSE;
         }
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Got '%s' turn, instruction %i", instr, instruction);
         
@@ -110,14 +111,16 @@ static void set_turn_bitmap(Tuple *t) {
 
 static void set_turn_instruction(DictionaryIterator *iter) {
     Tuple *turn = dict_find(iter, TURN);
-    
-    snprintf(turn_text, 32, "%s", 
-             (turn == NULL) ? "" : turn->value->cstring);
-    text_layer_set_text(turn_text_layer, turn_text);
+    if (turn) {
+        snprintf(turn_text, 32, "%s", 
+                 (turn == NULL) ? "" : turn->value->cstring);
+        text_layer_set_text(turn_text_layer, turn_text);
+    }
 }
 
 static void inbox_handler(DictionaryIterator *iter, void *context) {
-    set_turn_bitmap(dict_find(iter, TURN));
+    Tuple *turn = dict_find(iter, TURN);
+    if (turn) set_turn_bitmap(turn->value->cstring);
     set_turn_instruction(iter);
     
     Tuple *state = dict_find(iter, STATE);
@@ -133,11 +136,12 @@ static void inbox_handler(DictionaryIterator *iter, void *context) {
     } else if (strcmp("AdvanceToSegment", state->value->cstring) == 0) {
         snprintf(instruction_text, 128, "%s\nNow",
                  (street == NULL) ? "" : street->value->cstring);
-        vibes_double_pulse();
         light_enable_interaction();
     } else if (strcmp("ReplanFromHere", state->value->cstring) == 0) {
         snprintf(instruction_text, 128, "Replanning");
-        vibes_double_pulse();
+        vibes_short_pulse();
+    } else if (strcmp("GoingOffCourse", state->value->cstring) == 0) {
+        set_turn_bitmap("OFF_COURSE");
         vibes_double_pulse();
     } else if (strcmp("OnTheMove", state->value->cstring) == 0) {
         snprintf(instruction_text, 128, "%s",
