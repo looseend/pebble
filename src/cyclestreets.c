@@ -114,8 +114,10 @@ static void set_turn_instruction(DictionaryIterator *iter) {
     if (turn) {
         snprintf(turn_text, 32, "%s", 
                  (turn == NULL) ? "" : turn->value->cstring);
-        text_layer_set_text(turn_text_layer, turn_text);
+    } else {
+        strcpy(turn_text, "");
     }
+    text_layer_set_text(turn_text_layer, turn_text);
 }
 
 static void inbox_handler(DictionaryIterator *iter, void *context) {
