@@ -39,7 +39,6 @@ static void window_load(Window *window) {
 
   current_turn = gbitmap_create_with_resource(RESOURCE_ID_START);
   turn_layer = bitmap_layer_create((GRect) { .origin = {0, 0}, .size = {72,72}});
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "%ix%i", current_turn->bounds.size.w, current_turn->bounds.size.h);
   bitmap_layer_set_bitmap(turn_layer, current_turn);
   layer_add_child(window_layer, bitmap_layer_get_layer(turn_layer));
 
@@ -201,16 +200,18 @@ static void register_handlers() {
 
 static void init(void) {
     register_handlers();
-  window = window_create();
-  window_set_click_config_provider(window, click_config_provider);
-  window_set_window_handlers(window, (WindowHandlers) {
-    .load = window_load,
-    .unload = window_unload,
-  });
-  window_set_fullscreen(window, true);
-  const bool animated = true;
-  window_stack_push(window, animated);
-  messageProcessing = false;
+    window = window_create();
+    window_set_click_config_provider(window, click_config_provider);
+    window_set_window_handlers(window, (WindowHandlers) {
+            .load = window_load,
+                .unload = window_unload,
+                });
+#ifdef PBL_PLATFORM_APLITE
+    window_set_fullscreen(window, true);
+#endif
+    const bool animated = true;
+    window_stack_push(window, animated);
+    messageProcessing = false;
 }
 
 static void deinit(void) {

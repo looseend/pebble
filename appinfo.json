@@ -5,6 +5,11 @@
   "companyName": "CycleStreets",
   "versionCode": 1,
   "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
   "watchapp": {
     "watchface": false
   },
@@ -87,7 +92,12 @@
         "type": "png",
         "name": "OFF_COURSE",
         "file": "img/off_course.png"
-      }      
+      }
     ]
-  }
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3"
 }
