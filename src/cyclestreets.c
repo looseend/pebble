@@ -3,6 +3,8 @@
 static Window *window;
 static TextLayer *instruction_layer;
 static TextLayer *turn_text_layer;
+static TextLayer *time_text_layer;
+static TextLayer *distance_text_layer;
 static BitmapLayer *turn_layer;
 static bool messageProcessing;
 
@@ -33,17 +35,64 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
 
+static void update_time() {
+    // Get a tm structure
+    time_t temp = time(NULL); 
+    struct tm *tick_time = localtime(&temp);
+
+    // Create a long-lived buffer
+    static char buffer[] = "00:00";
+
+    // Write the current hours and minutes into the buffer
+    if(clock_is_24h_style() == true) {
+        //Use 24h hour format
+        strftime(buffer, sizeof("00:00"), "%H:%M", tick_time);
+    } else {
+        //Use 12 hour format
+        strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
+    }
+
+    // Display this time on the TextLayer
+    text_layer_set_text(time_text_layer, buffer);
+  
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+    update_time();
+}
+  
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
+#ifndef APLITE
+  window_set_background_color(window, GColorBlack);
+#endif
+  
   current_turn = gbitmap_create_with_resource(RESOURCE_ID_START);
   turn_layer = bitmap_layer_create((GRect) { .origin = {0, 0}, .size = {72,72}});
   bitmap_layer_set_bitmap(turn_layer, current_turn);
   layer_add_child(window_layer, bitmap_layer_get_layer(turn_layer));
 
-  turn_text_layer = text_layer_create((GRect) { .origin = {74, 0 }, .size = {68, 72}});
-  text_layer_set_font(turn_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  // TIME
+  time_text_layer = text_layer_create((GRect) { .origin = {74, -10 }, .size = {68, 24}});
+#ifndef PBL_PLATFORM_APLITE
+  text_layer_set_background_color(time_text_layer, GColorBlack);
+  text_layer_set_text_color(time_text_layer, GColorWhite);
+  text_layer_set_font(time_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#else
+  text_layer_set_font(time_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));  
+#endif
+  text_layer_set_text_alignment(time_text_layer, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(time_text_layer));
+
+  // TURN
+  turn_text_layer = text_layer_create((GRect) { .origin = {74, 22 }, .size = {68, 50}});
+#ifndef PBL_PLATFORM_APLITE
+  text_layer_set_background_color(turn_text_layer, GColorBlack);
+  text_layer_set_text_color(turn_text_layer, GColorWhite);
+#endif
+  text_layer_set_font(turn_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_alignment(turn_text_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(turn_text_layer));
   strncpy(turn_text, "", 1);
@@ -51,6 +100,10 @@ static void window_load(Window *window) {
   
   instruction_layer = text_layer_create((GRect) { .origin = {0, 74}, .size = {bounds.size.w,86}});
   text_layer_set_font(instruction_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+#ifndef PBL_PLATFORM_APLITE
+  text_layer_set_background_color(instruction_layer, GColorBlack);
+  text_layer_set_text_color(instruction_layer, GColorWhite);
+#endif
   text_layer_set_text_alignment(instruction_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(instruction_layer));
   strncpy(instruction_text, "Welcome to Cyclestreets", 23);
@@ -120,6 +173,7 @@ static void set_turn_instruction(DictionaryIterator *iter) {
 }
 
 static void inbox_handler(DictionaryIterator *iter, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Message received");
     Tuple *turn = dict_find(iter, TURN);
     if (turn) set_turn_bitmap(turn->value->cstring);
     set_turn_instruction(iter);
@@ -184,6 +238,9 @@ static void inbox_dropped_handler(AppMessageResult reason, void *context) {
     case APP_MSG_OUT_OF_MEMORY : APP_LOG(APP_LOG_LEVEL_DEBUG, "out of memoery"); break;
     case APP_MSG_CLOSED : APP_LOG(APP_LOG_LEVEL_DEBUG, "closed"); break;
     case APP_MSG_INTERNAL_ERROR : APP_LOG(APP_LOG_LEVEL_DEBUG, "internal"); break;
+#ifndef PBL_PLATFORM_APLITE
+    case APP_MSG_INVALID_STATE : APP_LOG(APP_LOG_LEVEL_DEBUG, "invalid state"); break;
+#endif
     }
     messageProcessing = false;
 }
@@ -212,6 +269,9 @@ static void init(void) {
     const bool animated = true;
     window_stack_push(window, animated);
     messageProcessing = false;
+
+    update_time();
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
 
 static void deinit(void) {
